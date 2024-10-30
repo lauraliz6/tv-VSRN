@@ -33,3 +33,4 @@ yarn-error.log*
 
 /localenv
 server/config/
+server/index.js
