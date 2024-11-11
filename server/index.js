@@ -1,3 +1,5 @@
+//updated with bracketed table column names to obscure table structure
+
 const express = require("express");
 const mysql2 = require("mysql2");
 const cors = require("cors");
@@ -123,14 +125,14 @@ app.post("/login", (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   db.query(
-    "SELECT * from users WHERE uidUsers = ?;",
+    "SELECT * from [USER TABLE] WHERE [USER ID] = ?;",
     username,
     (err, result) => {
       if (err) {
         res.send({ err: err });
       }
       if (result.length > 0) {
-        bcrypt.compare(password, result[0].pwdUsers, (error, response) => {
+        bcrypt.compare(password, result[0].pwd, (error, response) => {
           if (response) {
             const id = result[0].id;
             const token = jwt.sign({ id }, process.env.DB_JWTSECRET, {
@@ -163,21 +165,21 @@ app.post("/changePassword", (req, res) => {
   const newPass = req.body.new;
 
   db.query(
-    "SELECT * from users WHERE uidUsers =?;",
+    "SELECT * from [USER TABLE] WHERE [USER ID] =?;",
     username,
     (err, result) => {
       if (err) {
         res.send({ err: err });
       }
       if (result.length > 0) {
-        bcrypt.compare(oldPass, result[0].pwdUsers, (error, response) => {
+        bcrypt.compare(oldPass, result[0].pwd, (error, response) => {
           if (response) {
             bcrypt.hash(newPass, saltRounds, (err, hash) => {
               if (err) {
                 console.log(err);
               }
               db.query(
-                "UPDATE users SET pwdUsers = ? WHERE uidUsers = ?",
+                "UPDATE [USER TABLE] SET [USER PWD] = ? WHERE [USER ID] = ?",
                 [hash, username],
                 (err, result) => {
                   console.log(err);
@@ -226,22 +228,22 @@ app.get("/voiceRequests", (req, res) => {
     searchFilter += ")";
   }
 
-  if (role === "vt") {
-    sqlFilter = `AND talent="${name}" AND status != "incomplete"`;
+  if (role === "[VOICE TALENT ROLE]") {
+    sqlFilter = `AND [VOICE TALENT]="${name}" AND status != "[INCOMPLETE STATUS]"`;
   }
-  if (role === "writer" && toggle === "true") {
-    sqlFilter = `AND writer="${name}"`;
+  if (role === "[WRITER ROLE]" && toggle === "true") {
+    sqlFilter = `AND [WRITER]="${name}"`;
   }
 
   //this initial filter makes it so that a user without an assigned role cannot see any info
-  //if role is empty (passed from frontend) the second part will be included, so no entries will show as no entries have an id of 1
-  let initFilter = "WHERE id = 1";
-  //if role is not empty, all roles with an id bigger than 1 (which is all of them) will show
+  //if role is empty (passed from frontend) the second part will be included, so no entries will show as no entries have an [VRID] of 1
+  let initFilter = "WHERE [VRID] = 1";
+  //if role is not empty, all roles with an [VRID] bigger than 1 (which is all of them) will show
   if (role != "") {
-    initFilter = "WHERE id > 1";
+    initFilter = "WHERE [VRID] > 1";
   }
 
-  const query = `SELECT * FROM voiceRequests ${initFilter} ${sqlFilter} ${searchFilter} ORDER BY ${orderBy} ${order} LIMIT ${rows} OFFSET ${
+  const query = `SELECT * FROM [VOICE REQUESTS TABLE] ${initFilter} ${sqlFilter} ${searchFilter} ORDER BY ${orderBy} ${order} LIMIT ${rows} OFFSET ${
     rows * page
   };`;
 
@@ -260,11 +262,11 @@ app.get("/numVoiceRequests", (req, res) => {
   const toggle = req.headers.toggle;
   let sqlFilter = "";
   // WHERE talent =
-  if (role === "writer" && toggle === "true") {
-    sqlFilter = `WHERE writer = "${user}"`;
+  if (role === "[WRITER ROLE]" && toggle === "true") {
+    sqlFilter = `WHERE [WRITER] = "${user}"`;
   }
   if (role === "vt") {
-    sqlFilter = `WHERE talent = "${user}" AND status != "incomplete"`;
+    sqlFilter = `WHERE [VOCIE TALENT] = "${user}" AND status != "[INCOMPLETE STATUS]"`;
   }
 
   let searchFilter = "";
@@ -287,7 +289,7 @@ app.get("/numVoiceRequests", (req, res) => {
   }
 
   db.query(
-    `SELECT COUNT(id) AS Length FROM voiceRequests ${sqlFilter} ${searchFilter};`,
+    `SELECT COUNT([VRID]) AS Length FROM [VOICE REQUESTS TABLE] ${sqlFilter} ${searchFilter};`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -300,7 +302,7 @@ app.get("/numVoiceRequests", (req, res) => {
 
 app.get("/vts", (req, res) => {
   db.query(
-    `SELECT idUsers, uidUsers, nameUsers, emailUsers, roles, rates FROM users WHERE roles = 'vt';`,
+    `SELECT [USER ID NUMBER], [USER ID], [USER NAME], [USER EMAIL], [USER ROLE], [USER RATE] FROM [USER TABLE] WHERE roles = '[VOICE TALENT]';`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -311,27 +313,27 @@ app.get("/vts", (req, res) => {
   );
 });
 
-//posts to comments
+//posts to [COMMENTS]
 app.post("/comment", (req, res) => {
   const id = req.body.id;
   const comment = req.body.comment;
   db.query(
-    `SELECT comments FROM voicerequests WHERE id=${id}`,
+    `SELECT [COMMENTS] FROM [VOICE REQUEST TABLE] WHERE [VRID]=${id}`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
       } else if (result.length <= 0) {
         res.send({ err: err });
       } else {
-        const existComments = result[0].comments;
+        const existComments = result[0].[COMMENTS];
         let commQuery = "";
         if (existComments === null) {
-          commQuery = "UPDATE voicerequests SET comments = ? WHERE id=?;";
+          commQuery = "UPDATE [VOICE REQUEST TABLE] SET [COMMENTS] = ? WHERE [VRID]=?;";
         } else {
           commQuery =
-            "UPDATE voicerequests SET comments = concat(comments,?) WHERE id=?;";
+            "UPDATE [VOICE REQUEST TABLE] SET [COMMENTS] = concat([COMMENTS],?) WHERE [VRID]=?;";
         }
-        db.query(commQuery, [comment, id], (err, result) => {
+        db.query(commQuery, [comment, [VRID]], (err, result) => {
           if (err) {
             res.send({ err: err });
           } else {
@@ -348,7 +350,7 @@ app.post("/status", (req, res) => {
   const id = req.body.id;
   const status = req.body.status;
   db.query(
-    "UPDATE voicerequests SET status = ? WHERE id= ?;",
+    "UPDATE [VOICE REQUEST TABLE] SET status = ? WHERE [VRID]= ?;",
     [status, id],
     (err, result) => {
       if (err) {
@@ -366,7 +368,7 @@ app.get("/requestInfo", (req, res) => {
   const role = req.headers.userrole;
   const user = req.headers.username;
 
-  const query = `SELECT * FROM voiceRequests WHERE id = ${id};`;
+  const query = `SELECT * FROM [VOICE REQUESTS TABLE] WHERE [VRID] = ${id};`;
 
   db.query(query, (err, result) => {
     if (err) {
@@ -387,7 +389,7 @@ app.get("/requestInfo", (req, res) => {
 
 //alldata
 app.get("/allData", (req, res) => {
-  db.query(`SELECT * FROM voiceRequests`, (err, result) => {
+  db.query(`SELECT * FROM [VOICE REQUESTS TABLE]`, (err, result) => {
     if (err) {
       res.send({ err: err });
     } else {
@@ -399,7 +401,7 @@ app.get("/allData", (req, res) => {
 //allWriters
 app.get("/allWriters", (req, res) => {
   db.query(
-    `SELECT idUsers, uidUsers, nameUsers, emailUsers, roles, rates FROM users WHERE roles = 'writer';`,
+    `SELECT [USER ID NUMBER], [USER ID], [USER NAME], [USER EMAIL], [USER ROLE], [RATES] FROM [USER TABLE] WHERE [ROLE] = '[WRITER ROLE]';`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -427,7 +429,7 @@ app.post("/postDetails", (req, res) => {
   const rate = req.body.rate;
 
   db.query(
-    "UPDATE voicerequests SET status = ?, customer = ?, videoTitle = ?, writer = ?, wfID = ?, reviewCycle = ?, boxLink = ?, rush = ?, scriptType = ?, chaptersModules = ?, dueDate = ?, rate = ? WHERE id =?;",
+    "UPDATE [VOICE REQUEST TABLE] SET [STATUS] = ?, [CUSTOMER] = ?, [VIDEO TITLE] = ?, [ASSIGNED WRITER] = ?, [WORKFRONT ID] = ?, [REVIEW CYCLE] = ?, [BOX LINK] = ?, [RUSH] = ?, [TYPE OF SCRIPT] = ?, [CHAPTERS] = ?, [DUE DATE] = ?, [RATE] = ? WHERE [VRID] =?;",
     [
       status,
       cName,
@@ -462,7 +464,7 @@ app.post("/newRequest", (req, res) => {
   const status = "sent";
 
   db.query(
-    "INSERT INTO voiceRequests (status, writer, wfID, customer, videoTitle, talent, jobDescription, reviewCycle, scriptType, chaptersModules, sentDate, dueDate, rate, rush, boxLink) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    "INSERT INTO [VOICE REQUESTS TABLE] ([STATUS], [ASSIGNED WRITER], [WORKFRONT ID], [CUSTOMER], [VIDEO TITLE], [VOICE TALENT], [DESCRIPTION], [REVIEW CYCLE], [TYPE OF SCRIPT], [CHAPTERS], [SENT DATE], [DUE DATE], [RATE], [RUSH], [BOX LINK]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [
       status,
       user,
@@ -494,7 +496,7 @@ app.post("/newRequest", (req, res) => {
 app.get("/audioFolder", (req, res) => {
   const id = req.headers.id;
   db.query(
-    `SELECT boxLink FROM voiceRequests WHERE id = ${id};`,
+    `SELECT [BOX LINK] FROM [VOICE REQUESTS TABLE] WHERE [VRID] = ${id};`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -572,14 +574,14 @@ app.get("/emailAddress", (req, res) => {
   const role = req.headers.role;
   const id = req.headers.id;
   db.query(
-    `SELECT ${role} FROM voiceRequests WHERE id = ${id};`,
+    `SELECT ${role} FROM [VOICE REQUESTS TABLE] WHERE [VRID] = ${id};`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
       } else {
         const userN = result[0][`${role}`];
         db.query(
-          `SELECT emailUsers FROM users WHERE nameUsers = "${userN}"`,
+          `SELECT emailUsers FROM [USER TABLE] WHERE nameUsers = "${userN}"`,
           (err, result) => {
             if (err) {
               res.send({ err: err });
@@ -668,7 +670,7 @@ app.post("/writeBoxFolder", (req, res) => {
   const folder = req.body.folder;
 
   db.query(
-    "UPDATE voicerequests SET boxLink = ? WHERE id =?;",
+    "UPDATE [VOICE REQUEST TABLE] SET [BOX LINK] = ? WHERE [VRID] =?;",
     [folder, id],
     (err) => {
       if (err) {
@@ -686,12 +688,12 @@ app.get("/timeOff", (req, res) => {
   const user = req.headers.username;
   const calstart = req.headers.start.split("T").shift();
   const calend = req.headers.end.split("T").shift();
-  let monthLimit = `WHERE ((startTimeOff BETWEEN '${calstart}' AND '${calend}') OR (endTimeOff BETWEEN '${calstart}' AND '${calend}'))`;
+  let monthLimit = `WHERE (([TIME OFF START] BETWEEN '${calstart}' AND '${calend}') OR ([TIME OFF END] BETWEEN '${calstart}' AND '${calend}'))`;
   let sqlLimit = "";
   if (!usertype || usertype === "vt") {
-    sqlLimit = `AND vtUser = "${user}"`;
+    sqlLimit = `AND [VOICE TALENT USER] = "${user}"`;
   }
-  const query = `SELECT * FROM timeOff ${monthLimit} ${sqlLimit};`;
+  const query = `SELECT * FROM [TIME OFF TABLE] ${monthLimit} ${sqlLimit};`;
   db.query(query, (err, result) => {
     if (err) {
       res.send({ err: err });
@@ -702,7 +704,7 @@ app.get("/timeOff", (req, res) => {
         result.forEach((row) => {
           let talent = row.vtUser;
           db.query(
-            `SELECT nameUsers FROM users WHERE uidUsers = "${talent}";`,
+            `SELECT [USER NAME] FROM [USER TABLE] WHERE [USER ID] = "${talent}";`,
             (err, result2) => {
               if (err || result2.length < 0) {
                 res.send({ err: err });
@@ -710,7 +712,7 @@ app.get("/timeOff", (req, res) => {
                 if (result2.length > 0) {
                   let name = result2[0].nameUsers;
                   let timeoff = {
-                    id: row.idTimeOff,
+                    [VRID]: row.idTimeOff,
                     start: row.startTimeOff,
                     end: row.endTimeOff,
                     talent: name,
@@ -746,7 +748,7 @@ app.post("/addTimeOff", (req, res) => {
   const date = new Date();
   //first look for any overlaps
   db.query(
-    `SELECT * FROM timeOff WHERE vtUser = "${user}" AND ((startTimeOff BETWEEN "${start}" AND "${end}") OR (endTimeOff BETWEEN "${start}" AND "${end}"));`,
+    `SELECT * FROM [TIME OFF TABLE] WHERE [USER] = "${user}" AND (([TIME OFF START] BETWEEN "${start}" AND "${end}") OR ([TIME OFF END] BETWEEN "${start}" AND "${end}"));`,
     (err, result) => {
       if (err) {
         res.send({
@@ -761,7 +763,7 @@ app.post("/addTimeOff", (req, res) => {
           });
         } else {
           db.query(
-            "INSERT INTO timeOff (vtUser, curDate, startTimeOff, endTimeOff, toComment) VALUES (?, ?, ?, ?, ?);",
+            "INSERT INTO timeOff ([USER], [CURRENT DATE], [TIME OFF START], [TIME OFF END], [COMMENT]) VALUES (?, ?, ?, ?, ?);",
             [user, date, start, end, comment],
             (err, result) => {
               if (err) {
@@ -779,8 +781,8 @@ app.post("/addTimeOff", (req, res) => {
 
 //REMOVE TIMEOFF
 app.post("/removeTimeOff", (req, res) => {
-  const id = req.body.id;
-  db.query("DELETE FROM timeOff WHERE idTimeOff = ?;", [id], (err) => {
+  const [VRID] = req.body.id;
+  db.query("DELETE FROM [TIME OFF TABLE] WHERE [TIME OFF ID] = ?;", [id], (err) => {
     if (err) {
       res.send({ err: err });
     } else {
@@ -794,7 +796,7 @@ app.get("/timeOffSearch", (req, res) => {
   const usertype = req.headers.usertype;
   const date = req.headers.duedate;
   if (usertype || usertype !== "vt") {
-    const query = `SELECT vtUser FROM timeOff WHERE startTimeOff <= "${date}" AND endTimeOff >= "${date}";`;
+    const query = `SELECT [USER] FROM [TIME OFF TABLE] WHERE [TIME OFF START] <= "${date}" AND [TIME OFF END] >= "${date}";`;
     db.query(query, (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -953,7 +955,7 @@ function fetchTokensFromDb() {
         if (!response) {
           resolve({ err: "no connection" });
         } else {
-          box_db.query(`SELECT * FROM boxApiTokens`, (err, result) => {
+          box_db.query(`SELECT * FROM [BOX API TABLE]`, (err, result) => {
             if (err) {
               resolve({ err: err });
             } else {
@@ -973,7 +975,7 @@ function writeTokensToDb(access, refresh, exp) {
     const expAt = exp * 1000;
     try {
       box_db.query(
-        "UPDATE boxApiTokens SET access_token = ?, refresh_token = ?, expires_at = ? WHERE conn_num =?;",
+        "UPDATE [BOX API TABLE] SET [ACCESS TOKEN] = ?, [REFRESH TOKEN] = ?, [EXPIRATION] = ? WHERE [CONNECTION NUMBER] =?;",
         [access, refresh, expAt, 1],
         (err) => {
           if (err) {
@@ -1083,10 +1085,10 @@ app.post("/wfpost", function (req, res) {
 //
 //USER MANAGEMENT
 //
-//fetch all users
+//fetch all [USER TABLE]
 app.get("/allUsers", (req, res) => {
   db.query(
-    `SELECT idUsers, uidUsers, nameUsers, emailUsers, roles, rates FROM users;`,
+    `SELECT [USER ID NUMBER], [USER ID], [USER NAME], [USER EMAIL], [ROLE], [RATES] FROM [USER TABLE];`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -1102,7 +1104,7 @@ app.post("/updateUserInfo", (req, res) => {
   const changes = req.body.changes;
   const user = changes.userId;
   const props = changes.props;
-  let queryStr = "UPDATE users SET ";
+  let queryStr = "UPDATE [USER TABLE] SET ";
   let changesStrArr = [];
   let changesArr = [];
   props.forEach((prop) => {
@@ -1111,7 +1113,7 @@ app.post("/updateUserInfo", (req, res) => {
   });
   const changesStr = changesStrArr.join(", ");
   queryStr += changesStr;
-  queryStr += " WHERE uidUsers = ?";
+  queryStr += " WHERE [USER ID] = ?";
   changesArr.push(user);
   queryStr += ";";
   db.query(queryStr, changesArr, (err) => {
@@ -1126,8 +1128,8 @@ app.post("/updateUserInfo", (req, res) => {
 app.post("/changeNamesVRDB", (req, res) => {
   const changes = req.body.changes;
   //first replace where name is writer
-  // UPDATE tutorial_db.voicerequests SET writer = "Laura Brown" WHERE writer = "Joe Chung";
-  let queryStr = "UPDATE voicerequests SET writer = ? WHERE writer = ?;";
+  // UPDATE tutorial_db.[VOICE REQUEST TABLE] SET writer = "Laura Brown" WHERE writer = "Joe Chung";
+  let queryStr = "UPDATE [VOICE REQUEST TABLE] SET [ASSIGNED WRITER] = ? WHERE [ASSIGNED WRITER] = ?;";
   let queryParams = [changes.new, changes.old];
   db.query(queryStr, queryParams, (err) => {
     if (err) {
@@ -1135,7 +1137,7 @@ app.post("/changeNamesVRDB", (req, res) => {
     } else {
       //then replace where name is talent
       let secondQueryStr =
-        "UPDATE voicerequests SET talent = ? WHERE talent = ?;";
+        "UPDATE [VOICE REQUEST TABLE] SET [VOICE TALENT] = ? WHERE [VOICE TALENT] = ?;";
       db.query(secondQueryStr, queryParams, (err) => {
         if (err) {
           res.send({ err: err });
@@ -1150,19 +1152,19 @@ app.post("/changeNamesVRDB", (req, res) => {
 //adding a new user
 app.post("/addUser", (req, res) => {
   const newUserInfo = req.body.info;
-  const uid = newUserInfo.uidUsers;
+  const uid = newUserInfo.id;
   const name = newUserInfo.nameUsers;
   const email = newUserInfo.emailUsers;
   const role = newUserInfo.roles;
   const rate = newUserInfo.rates;
-  const pwd = newUserInfo.pwdUsers;
+  const pwd = newUserInfo.pwd;
   //encrypting password
   bcrypt.hash(pwd, saltRounds, (err, hash) => {
     if (err) {
       console.log(err);
     }
     db.query(
-      "INSERT INTO users (uidUsers, nameUsers, emailUsers, pwdUsers, roles, rates) VALUES (?, ?, ?, ?, ?, ?);",
+      "INSERT INTO [USER TABLE] ([USER ID], [USER NAME], [USER EMAIL], [USER PWD], [ROLE], [RATES]) VALUES (?, ?, ?, ?, ?, ?);",
       [uid, name, email, hash, role, rate],
       (err, result) => {
         if (err) {
@@ -1181,7 +1183,7 @@ app.get("/userCheck", (req, res) => {
   const uid = req.headers.uid;
   const name = req.headers.name;
   db.query(
-    `SELECT idUsers FROM users WHERE uidUsers = "${uid}";`,
+    `SELECT [USER ID NUMBER] FROM [USER TABLE] WHERE [USER ID] = "${uid}";`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -1190,7 +1192,7 @@ app.get("/userCheck", (req, res) => {
           res.send({ err: "UID already in use in database." });
         } else {
           db.query(
-            `SELECT idUsers FROM users WHERE nameUsers = "${name}";`,
+            `SELECT [USER ID NUMBER] FROM [USER TABLE] WHERE [USER NAME] = "${name}";`,
             (err, result) => {
               if (err) {
                 res.send({ err: err });
@@ -1244,7 +1246,7 @@ app.post("/securityEmail", (req, res, next) => {
 app.get("/sqlData", (req, res) => {
   const status = req.headers.status;
   db.query(
-    `SELECT COUNT(id) AS Length FROM voiceRequests WHERE status = '${status}'`,
+    `SELECT COUNT([VRID]) AS Length FROM [VOICE REQUESTS TABLE] WHERE [STATUS] = '${status}'`,
     (err, result) => {
       if (err) {
         res.send({ err: err });
@@ -1257,9 +1259,9 @@ app.get("/sqlData", (req, res) => {
 
 app.get("/vtRequestsList", (req, res) => {
   const user = req.headers.user;
-  let query = `SELECT id FROM voiceRequests`;
+  let query = `SELECT [VRID] FROM [VOICE REQUESTS TABLE]`;
   if (user !== "all") {
-    query += ` WHERE talent = '${user}'`;
+    query += ` WHERE [VOICE TALENT] = '${user}'`;
   }
   db.query(query, (err, result) => {
     if (err) {
@@ -1272,9 +1274,9 @@ app.get("/vtRequestsList", (req, res) => {
 
 app.get("/wtRequestsList", (req, res) => {
   const user = req.headers.user;
-  let query = `SELECT id FROM voiceRequests`;
+  let query = `SELECT [VRID] FROM [VOICE REQUESTS TABLE]`;
   if (user !== "all") {
-    query += ` WHERE writer = '${user}'`;
+    query += ` WHERE [ASSIGNED WRITER] = '${user}'`;
   }
   db.query(query, (err, result) => {
     if (err) {
@@ -1287,9 +1289,9 @@ app.get("/wtRequestsList", (req, res) => {
 
 app.get("/vtDashData", (req, res) => {
   const vt = req.headers.vt;
-  let query = `SELECT COUNT(id) AS Length, SUM(rate) AS Cost FROM voiceRequests`;
+  let query = `SELECT COUNT([VRID]) AS Length, SUM(rate) AS Cost FROM [VOICE REQUESTS TABLE]`;
   if (vt !== "all") {
-    query += ` WHERE talent = '${vt}'`;
+    query += ` WHERE [VOICE TALENT] = '${vt}'`;
   }
   db.query(query, (err, result) => {
     if (err) {
@@ -1302,9 +1304,9 @@ app.get("/vtDashData", (req, res) => {
 
 app.get("/wtDashData", (req, res) => {
   const writer = req.headers.writer;
-  let query = `SELECT COUNT(id) AS Length, SUM(rate) AS Cost FROM voiceRequests`;
+  let query = `SELECT COUNT([VRID]) AS Length, SUM(rate) AS Cost FROM [VOICE REQUESTS TABLE]`;
   if (writer !== "all") {
-    query += ` WHERE writer = '${writer}'`;
+    query += ` WHERE [ASSIGNED WRITER] = '${writer}'`;
   }
   db.query(query, (err, result) => {
     if (err) {
@@ -1317,12 +1319,12 @@ app.get("/wtDashData", (req, res) => {
 
 app.get("/vtDashDataGroup", (req, res) => {
   const vt = req.headers.vt;
-  let querySel = `SELECT MONTHNAME(dueDate) As Month, YEAR(dueDate) AS Year, COUNT(id) AS Length, SUM(rate) AS Cost FROM voiceRequests`;
+  let querySel = `SELECT MONTHNAME([DUE DATE]) As Month, YEAR([DUE DATE]) AS Year, COUNT([VRID]) AS Length, SUM([RATE]) AS Cost FROM [VOICE REQUESTS TABLE]`;
   let queryWhere = ``;
   if (vt !== "all") {
-    queryWhere = ` WHERE talent = '${vt}'`;
+    queryWhere = ` WHERE [VOICE TALENT] = '${vt}'`;
   }
-  let queryGroup = ` GROUP BY YEAR(dueDate), MONTHNAME(dueDate);`;
+  let queryGroup = ` GROUP BY YEAR([DUE DATE]), MONTHNAME([DUE DATE]);`;
   let query = querySel + queryWhere + queryGroup;
   db.query(query, (err, result) => {
     if (err) {
@@ -1335,12 +1337,12 @@ app.get("/vtDashDataGroup", (req, res) => {
 
 app.get("/wtDashDataGroup", (req, res) => {
   const writer = req.headers.writer;
-  let querySel = `SELECT MONTHNAME(dueDate) As Month, YEAR(dueDate) AS Year, COUNT(id) AS Length, SUM(rate) AS Cost FROM voiceRequests`;
+  let querySel = `SELECT MONTHNAME([DUE DATE]) As Month, YEAR([DUE DATE]) AS Year, COUNT([VRID]) AS Length, SUM([RATE]) AS Cost FROM [VOICE REQUESTS TABLE]`;
   let queryWhere = ``;
   if (writer !== "all") {
     queryWhere = ` WHERE writer = '${writer}'`;
   }
-  let queryGroup = ` GROUP BY YEAR(dueDate), MONTHNAME(dueDate);`;
+  let queryGroup = ` GROUP BY YEAR([DUE DATE]), MONTHNAME([DUE DATE]);`;
   let query = querySel + queryWhere + queryGroup;
   db.query(query, (err, result) => {
     if (err) {
@@ -1354,10 +1356,10 @@ app.get("/wtDashDataGroup", (req, res) => {
 app.get("/vtDashDataByGroup", (req, res) => {
   const vt = req.headers.vt;
   const group = req.headers.group;
-  let querySel = `SELECT COUNT(id) as Length, ${group} FROM voiceRequests`;
+  let querySel = `SELECT COUNT([VRID]) as Length, ${group} FROM [VOICE REQUESTS TABLE]`;
   let queryWhere = ``;
   if (vt !== "all") {
-    queryWhere = ` WHERE talent = '${vt}'`;
+    queryWhere = ` WHERE [VOICE TALENT] = '${vt}'`;
   }
   let queryGroup = ` GROUP BY ${group};`;
   let query = querySel + queryWhere + queryGroup;
@@ -1373,10 +1375,10 @@ app.get("/vtDashDataByGroup", (req, res) => {
 app.get("/wtDashDataByGroup", (req, res) => {
   const writer = req.headers.writer;
   const group = req.headers.group;
-  let querySel = `SELECT COUNT(id) as Length, ${group} FROM voiceRequests`;
+  let querySel = `SELECT COUNT([VRID]) as Length, ${group} FROM [VOICE REQUESTS TABLE]`;
   let queryWhere = ``;
   if (writer !== "all") {
-    queryWhere = ` WHERE writer = '${writer}'`;
+    queryWhere = ` WHERE [ASSIGNED WRITER] = '${writer}'`;
   }
   let queryGroup = ` GROUP BY ${group};`;
   let query = querySel + queryWhere + queryGroup;
